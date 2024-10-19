@@ -2,11 +2,15 @@ import java.util.Scanner;
 public class CommandLineInterpreter {
 
     public static void main(String[] args) {
-        //scanner object to read input
+        System.out.println("Welcome to the java Unix-based shell...");
+        
         boolean isExit = false;
         while (true) {
+            if (isExit) {
+                break;
+            }
             Scanner scanner = new Scanner(System.in);
-            System.out.println("\n$> ");
+            System.out.println("$> ");
             String userInput = scanner.nextLine();
             switch (userInput) {
                 case "help":
@@ -46,6 +50,8 @@ public class CommandLineInterpreter {
                     break;
                 case "exit":
                     System.out.println("$[See you next time ;D]> Bye!");
+                    isExit = true;
+                    scanner.close();
                     break;
             
                 default:
