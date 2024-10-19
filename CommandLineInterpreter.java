@@ -1,6 +1,6 @@
 import java.util.Scanner;
 public class CommandLineInterpreter {
-    //comment to test the goddamn connection
+    //again
     public static void main(String[] args) {
         System.out.println("Welcome to the java Unix-based shell...");
         
