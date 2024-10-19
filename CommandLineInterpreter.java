@@ -28,6 +28,9 @@ public class CommandLineInterpreter {
                 case "mkdir":
                     
                     break;
+                case "rmdir":
+                    
+                    break;
             
                 default:
                     break;
