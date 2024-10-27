@@ -62,16 +62,20 @@ public class CommandLineInterpreter {
                 case "ls":
                     if (parameters.equals("-a")) {
                         System.out.println("Listing all files, including hidden files.");
+                        //TODO:Add code for ls -a
                     } else if (parameters.equals("-r")) {
                         System.out.println("Listing files in reverse order.");
+                        //TODO:Add code for ls -r
                     } else {
                         System.out.println("Listing files in current directory.");
+                        //TODO:Add code for ls
                     }
                     break;
 
                 case "cd":
                     if (!parameters.isEmpty()) {
                         System.out.println("Changing directory to: " + parameters);
+                        //TODO:Add code for cd
                     } else {
                         System.out.println("$[error]> Please provide a directory.");
                     }
@@ -79,11 +83,13 @@ public class CommandLineInterpreter {
 
                 case "pwd":
                     System.out.println("Printing working directory.");
+                    //TODO:Add code for pwd
                     break;
 
                 case "mkdir":
                     if (!parameters.isEmpty()) {
                         System.out.println("Creating directory: " + parameters);
+                        //TODO:Add code for mkdir
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
                     }
@@ -92,6 +98,7 @@ public class CommandLineInterpreter {
                 case "rmdir":
                     if (!parameters.isEmpty()) {
                         System.out.println("Removing directory: " + parameters);
+                        //TODO:Add code for rmdir
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
                     }
@@ -100,6 +107,7 @@ public class CommandLineInterpreter {
                 case "touch":
                     if (!parameters.isEmpty()) {
                         System.out.println("Creating file: " + parameters);
+                        //TODO:Add code for touch
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
@@ -109,6 +117,7 @@ public class CommandLineInterpreter {
                     String[] mvParams = parameters.split("\\s+");
                     if (mvParams.length == 2) {
                         System.out.println("Moving/renaming " + mvParams[0] + " to " + mvParams[1]);
+                        //TODO:Add code for mv and note for renaming case
                     } else {
                         System.out.println("$[error]> Please provide source and destination.");
                     }
@@ -117,6 +126,7 @@ public class CommandLineInterpreter {
                 case "rm":
                     if (!parameters.isEmpty()) {
                         System.out.println("Removing file: " + parameters);
+                        //TODO:Add code for rm
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
@@ -125,6 +135,7 @@ public class CommandLineInterpreter {
                 case "cat":
                     if (!parameters.isEmpty()) {
                         System.out.println("Displaying contents of file: " + parameters);
+                        //TODO:Add code for cat
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
