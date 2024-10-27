@@ -1,8 +1,11 @@
+import java.io.*;
 import java.util.Scanner;
 
 public class CommandLineInterpreter {
+    private static String currentDirectory = System.getProperty("user.dir");
+
     public static void main(String[] args) {
-        System.out.println("Welcome to the java Unix-based shell...");
+        System.out.println("Welcome to the Java Unix-based shell...");
 
         boolean isExit = false;
         Scanner scanner = new Scanner(System.in);
@@ -16,22 +19,26 @@ public class CommandLineInterpreter {
                 String[] pipeParts = userInput.split("\\|");
                 String command1 = pipeParts[0].trim();
                 String command2 = pipeParts[1].trim();
-                System.out.println("Piping output of: " + command1 + " to " + command2);
-                // Here you would execute command1, capture its output, and pass it as input to command2
+
+                // Execute the first command and get its output
+                String output1 = execCommand(command1.split(" "));
+                // Pass the output of the first command to the second command
+                String output2 = execCommand(command2.split(" "), output1);
+                System.out.println(output2);
                 continue;
             } else if (userInput.contains(">>")) {
                 String[] redirectionParts = userInput.split(">>");
                 String command = redirectionParts[0].trim();
                 String targetFile = redirectionParts[1].trim();
-                System.out.println("Appending output of: " + command + " to file: " + targetFile);
-                // Execute the command and append output to the target file
+                String output = execCommand(command.split(" "));
+                appendToFile(targetFile, output);
                 continue;
             } else if (userInput.contains(">")) {
                 String[] redirectionParts = userInput.split(">");
                 String command = redirectionParts[0].trim();
                 String targetFile = redirectionParts[1].trim();
-                System.out.println("Writing output of: " + command + " to file: " + targetFile);
-                // Execute the command and write output to the target file
+                String output = execCommand(command.split(" "));
+                writeToFile(targetFile, output);
                 continue;
             }
 
@@ -43,53 +50,43 @@ public class CommandLineInterpreter {
             switch (command) {
                 case "help":
                     System.out.println("Available commands: \n"
-                        + " ls [-a | -r]: list current directory child items \n"
-                        + " cd <directory>: change directory \n"
-                        + " pwd : print working directory \n"
-                        + " mkdir <directory>: make directory \n"
-                        + " rmdir <directory>: remove empty directory \n"
-                        + " touch <file>: create new file \n"
-                        + " mv <source> <destination>: cut/rename a file \n"
-                        + " rm <file>: remove a file \n"
-                        + " cat <file>: output file's content \n"
-                        + " ============================= \n"
-                        + " Optional directives: \n"
-                        + " > [overwrite] \n"
-                        + " >> [append new line] \n"
-                        + " | [pipe output]");
+                            + " ls [-a | -r]: list current directory child items \n"
+                            + " cd <directory>: change directory \n"
+                            + " pwd : print working directory \n"
+                            + " mkdir <directory>: make directory \n"
+                            + " rmdir <directory>: remove empty directory \n"
+                            + " touch <file>: create new file \n"
+                            + " mv <source> <destination>: cut/rename a file \n"
+                            + " rm <file>: remove a file \n"
+                            + " cat <file>: output file's content \n"
+                            + " ============================= \n"
+                            + " Optional directives: \n"
+                            + " > [overwrite] \n"
+                            + " >> [append new line] \n"
+                            + " | [pipe output]");
                     break;
 
                 case "ls":
-                    if (parameters.equals("-a")) {
-                        System.out.println("Listing all files, including hidden files.");
-                        //TODO:Add code for ls -a
-                    } else if (parameters.equals("-r")) {
-                        System.out.println("Listing files in reverse order.");
-                        //TODO:Add code for ls -r
-                    } else {
-                        System.out.println("Listing files in current directory.");
-                        //TODO:Add code for ls
-                    }
+                    System.out.println("Listing files in current directory.");
+                    String output = execCommand(new String[]{"cmd", "/c", "dir"});
+                    System.out.println(output);
                     break;
 
                 case "cd":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Changing directory to: " + parameters);
-                        //TODO:Add code for cd
+                        changeDirectory(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory.");
                     }
                     break;
 
                 case "pwd":
-                    System.out.println("Printing working directory.");
-                    //TODO:Add code for pwd
+                    System.out.println("Current working directory: " + currentDirectory);
                     break;
 
                 case "mkdir":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Creating directory: " + parameters);
-                        //TODO:Add code for mkdir
+                        createDirectory(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
                     }
@@ -97,8 +94,7 @@ public class CommandLineInterpreter {
 
                 case "rmdir":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Removing directory: " + parameters);
-                        //TODO:Add code for rmdir
+                        removeDirectory(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
                     }
@@ -106,8 +102,7 @@ public class CommandLineInterpreter {
 
                 case "touch":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Creating file: " + parameters);
-                        //TODO:Add code for touch
+                        createFile(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
@@ -116,8 +111,7 @@ public class CommandLineInterpreter {
                 case "mv":
                     String[] mvParams = parameters.split("\\s+");
                     if (mvParams.length == 2) {
-                        System.out.println("Moving/renaming " + mvParams[0] + " to " + mvParams[1]);
-                        //TODO:Add code for mv and note for renaming case
+                        moveFile(mvParams[0], mvParams[1]);
                     } else {
                         System.out.println("$[error]> Please provide source and destination.");
                     }
@@ -125,8 +119,7 @@ public class CommandLineInterpreter {
 
                 case "rm":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Removing file: " + parameters);
-                        //TODO:Add code for rm
+                        deleteFile(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
@@ -134,8 +127,7 @@ public class CommandLineInterpreter {
 
                 case "cat":
                     if (!parameters.isEmpty()) {
-                        System.out.println("Displaying contents of file: " + parameters);
-                        //TODO:Add code for cat
+                        displayFileContent(parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
                     }
@@ -153,5 +145,168 @@ public class CommandLineInterpreter {
         }
 
         scanner.close();
+    }
+
+    private static String execCommand(String[] commandParts) {
+        StringBuilder output = new StringBuilder();
+
+        try {
+            // ProcessBuilder for running commands
+            ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
+            processBuilder.directory(new File(currentDirectory));
+
+            Process process = processBuilder.start();
+
+            // Read the output
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // Wait for the process to finish
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            return "$[error]> " + e.getMessage();
+        }
+
+        return output.toString().trim();
+    }
+
+    private static String execCommand(String[] commandParts, String input) {
+        StringBuilder output = new StringBuilder();
+
+        try {
+            // Create a process to execute the command
+            ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
+            processBuilder.directory(new File(currentDirectory));
+
+            // Start the process
+            Process process = processBuilder.start();
+
+            // Write the input to the process's output stream
+            try (OutputStream os = process.getOutputStream()) {
+                os.write(input.getBytes());
+                os.flush();
+            }
+
+            // Read the output from the process
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // Wait for the process to finish
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            return "$[error]> " + e.getMessage();
+        }
+
+        return output.toString().trim();
+    }
+
+    private static void writeToFile(String targetFile, String content) {
+        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile))) {
+            fw.write(content);
+        } catch (IOException e) {
+            System.out.println("$[error]> " + e.getMessage());
+        }
+    }
+
+    private static void appendToFile(String targetFile, String content) {
+        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile), true)) {
+            fw.write(content);
+        } catch (IOException e) {
+            System.out.println("$[error]> " + e.getMessage());
+        }
+    }
+
+    private static void changeDirectory(String path) {
+        File newDir = new File(currentDirectory, path);
+        if (newDir.exists() && newDir.isDirectory()) {
+            currentDirectory = newDir.getAbsolutePath();
+            System.out.println("Changed directory to: " + currentDirectory);
+        } else {
+            System.out.println("$[error]> Directory does not exist: " + path);
+        }
+    }
+
+    private static void createDirectory(String dirName) {
+        File newDir = new File(currentDirectory, dirName);
+        if (newDir.mkdir()) {
+            System.out.println("Directory created: " + dirName);
+        } else {
+            System.out.println("$[error]> Failed to create directory: " + dirName);
+        }
+    }
+
+    private static void removeDirectory(String dirName) {
+        File dir = new File(currentDirectory, dirName);
+        if (dir.exists() && dir.isDirectory()) {
+            if (dir.delete()) {
+                System.out.println("Directory removed: " + dirName);
+            } else {
+                System.out.println("$[error]> Failed to remove directory: " + dirName);
+            }
+        } else {
+            System.out.println("$[error]> Directory does not exist: " + dirName);
+        }
+    }
+
+    private static void createFile(String fileName) {
+        File file = new File(currentDirectory, fileName);
+        try {
+            if (file.createNewFile()) {
+                System.out.println("File created: " + fileName);
+            } else {
+                System.out.println("$[error]> File already exists: " + fileName);
+            }
+        } catch (IOException e) {
+            System.out.println("$[error]> " + e.getMessage());
+        }
+    }
+
+    private static void moveFile(String source, String destination) {
+        File srcFile = new File(currentDirectory, source);
+        File destFile = new File(currentDirectory, destination);
+        if (srcFile.exists()) {
+            if (srcFile.renameTo(destFile)) {
+                System.out.println("File moved from " + source + " to " + destination);
+            } else {
+                System.out.println("$[error]> Failed to move file: " + source);
+            }
+        } else {
+            System.out.println("$[error]> Source file does not exist: " + source);
+        }
+    }
+
+    private static void deleteFile(String fileName) {
+        File file = new File(currentDirectory, fileName);
+        if (file.exists()) {
+            if (file.delete()) {
+                System.out.println("File removed: " + fileName);
+            } else {
+                System.out.println("$[error]> Failed to remove file: " + fileName);
+            }
+        } else {
+            System.out.println("$[error]> File does not exist: " + fileName);
+        }
+    }
+
+    private static void displayFileContent(String fileName) {
+        File file = new File(currentDirectory, fileName);
+        if (file.exists() && file.isFile()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            } catch (IOException e) {
+                System.out.println("$[error]> " + e.getMessage());
+            }
+        } else {
+            System.out.println("$[error]> File does not exist: " + fileName);
+        }
     }
 }
