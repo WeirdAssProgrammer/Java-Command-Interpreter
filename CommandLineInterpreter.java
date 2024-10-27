@@ -10,7 +10,31 @@ public class CommandLineInterpreter {
         while (!isExit) {
             System.out.print("$> ");
             String userInput = scanner.nextLine().trim();
-            
+
+            // Check for pipe or redirection operators
+            if (userInput.contains("|")) {
+                String[] pipeParts = userInput.split("\\|");
+                String command1 = pipeParts[0].trim();
+                String command2 = pipeParts[1].trim();
+                System.out.println("Piping output of: " + command1 + " to " + command2);
+                // Here you would execute command1, capture its output, and pass it as input to command2
+                continue;
+            } else if (userInput.contains(">>")) {
+                String[] redirectionParts = userInput.split(">>");
+                String command = redirectionParts[0].trim();
+                String targetFile = redirectionParts[1].trim();
+                System.out.println("Appending output of: " + command + " to file: " + targetFile);
+                // Execute the command and append output to the target file
+                continue;
+            } else if (userInput.contains(">")) {
+                String[] redirectionParts = userInput.split(">");
+                String command = redirectionParts[0].trim();
+                String targetFile = redirectionParts[1].trim();
+                System.out.println("Writing output of: " + command + " to file: " + targetFile);
+                // Execute the command and write output to the target file
+                continue;
+            }
+
             // Split the input into command and parameters
             String[] inputParts = userInput.split("\\s+", 2);
             String command = inputParts[0];
@@ -37,20 +61,16 @@ public class CommandLineInterpreter {
 
                 case "ls":
                     if (parameters.equals("-a")) {
-                        // Handle ls -a logic here
                         System.out.println("Listing all files, including hidden files.");
                     } else if (parameters.equals("-r")) {
-                        // Handle ls -r logic here
                         System.out.println("Listing files in reverse order.");
                     } else {
-                        // Handle regular ls command here
                         System.out.println("Listing files in current directory.");
                     }
                     break;
 
                 case "cd":
                     if (!parameters.isEmpty()) {
-                        // Handle cd <directory> logic here
                         System.out.println("Changing directory to: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory.");
@@ -58,13 +78,11 @@ public class CommandLineInterpreter {
                     break;
 
                 case "pwd":
-                    // Handle pwd logic here
                     System.out.println("Printing working directory.");
                     break;
 
                 case "mkdir":
                     if (!parameters.isEmpty()) {
-                        // Handle mkdir <directory> logic here
                         System.out.println("Creating directory: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
@@ -73,7 +91,6 @@ public class CommandLineInterpreter {
 
                 case "rmdir":
                     if (!parameters.isEmpty()) {
-                        // Handle rmdir <directory> logic here
                         System.out.println("Removing directory: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a directory name.");
@@ -82,7 +99,6 @@ public class CommandLineInterpreter {
 
                 case "touch":
                     if (!parameters.isEmpty()) {
-                        // Handle touch <file> logic here
                         System.out.println("Creating file: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
@@ -92,7 +108,6 @@ public class CommandLineInterpreter {
                 case "mv":
                     String[] mvParams = parameters.split("\\s+");
                     if (mvParams.length == 2) {
-                        // Handle mv <source> <destination> logic here
                         System.out.println("Moving/renaming " + mvParams[0] + " to " + mvParams[1]);
                     } else {
                         System.out.println("$[error]> Please provide source and destination.");
@@ -101,7 +116,6 @@ public class CommandLineInterpreter {
 
                 case "rm":
                     if (!parameters.isEmpty()) {
-                        // Handle rm <file> logic here
                         System.out.println("Removing file: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
@@ -110,7 +124,6 @@ public class CommandLineInterpreter {
 
                 case "cat":
                     if (!parameters.isEmpty()) {
-                        // Handle cat <file> logic here
                         System.out.println("Displaying contents of file: " + parameters);
                     } else {
                         System.out.println("$[error]> Please provide a file name.");
