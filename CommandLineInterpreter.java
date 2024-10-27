@@ -14,212 +14,120 @@ public class CommandLineInterpreter {
             System.out.print("$> ");
             String userInput = scanner.nextLine().trim();
 
-            // Check for pipe or redirection operators
+            // Check for pipe operator
             if (userInput.contains("|")) {
-                String[] pipeParts = userInput.split("\\|");
-                String command1 = pipeParts[0].trim();
-                String command2 = pipeParts[1].trim();
-
-                // Execute the first command and get its output
-                String output1 = execCommand(command1.split(" "));
-                // Pass the output of the first command to the second command
-                String output2 = execCommand(command2.split(" "), output1);
-                System.out.println(output2);
+                String[] commands = userInput.split("\\|");
+                String previousOutput = "";
+                for (String command : commands) {
+                    command = command.trim();
+                    previousOutput = processCommand(command, previousOutput);
+                }
                 continue;
             } else if (userInput.contains(">>")) {
                 String[] redirectionParts = userInput.split(">>");
                 String command = redirectionParts[0].trim();
                 String targetFile = redirectionParts[1].trim();
-                String output = execCommand(command.split(" "));
+                String output = processCommand(command, "");
                 appendToFile(targetFile, output);
                 continue;
             } else if (userInput.contains(">")) {
                 String[] redirectionParts = userInput.split(">");
                 String command = redirectionParts[0].trim();
                 String targetFile = redirectionParts[1].trim();
-                String output = execCommand(command.split(" "));
+                String output = processCommand(command, "");
                 writeToFile(targetFile, output);
                 continue;
             }
 
-            // Split the input into command and parameters
-            String[] inputParts = userInput.split("\\s+", 2);
-            String command = inputParts[0];
-            String parameters = inputParts.length > 1 ? inputParts[1] : "";
-
-            switch (command) {
-                case "help":
-                    System.out.println("Available commands: \n"
-                            + " ls [-a | -r]: list current directory child items \n"
-                            + " cd <directory>: change directory \n"
-                            + " pwd : print working directory \n"
-                            + " mkdir <directory>: make directory \n"
-                            + " rmdir <directory>: remove empty directory \n"
-                            + " touch <file>: create new file \n"
-                            + " mv <source> <destination>: cut/rename a file \n"
-                            + " rm <file>: remove a file \n"
-                            + " cat <file>: output file's content \n"
-                            + " ============================= \n"
-                            + " Optional directives: \n"
-                            + " > [overwrite] \n"
-                            + " >> [append new line] \n"
-                            + " | [pipe output]");
-                    break;
-
-                case "ls":
-                    System.out.println("Listing files in current directory.");
-                    String output = execCommand(new String[]{"cmd", "/c", "dir"});
-                    System.out.println(output);
-                    break;
-
-                case "cd":
-                    if (!parameters.isEmpty()) {
-                        changeDirectory(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a directory.");
-                    }
-                    break;
-
-                case "pwd":
-                    System.out.println("Current working directory: " + currentDirectory);
-                    break;
-
-                case "mkdir":
-                    if (!parameters.isEmpty()) {
-                        createDirectory(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a directory name.");
-                    }
-                    break;
-
-                case "rmdir":
-                    if (!parameters.isEmpty()) {
-                        removeDirectory(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a directory name.");
-                    }
-                    break;
-
-                case "touch":
-                    if (!parameters.isEmpty()) {
-                        createFile(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a file name.");
-                    }
-                    break;
-
-                case "mv":
-                    String[] mvParams = parameters.split("\\s+");
-                    if (mvParams.length == 2) {
-                        moveFile(mvParams[0], mvParams[1]);
-                    } else {
-                        System.out.println("$[error]> Please provide source and destination.");
-                    }
-                    break;
-
-                case "rm":
-                    if (!parameters.isEmpty()) {
-                        deleteFile(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a file name.");
-                    }
-                    break;
-
-                case "cat":
-                    if (!parameters.isEmpty()) {
-                        displayFileContent(parameters);
-                    } else {
-                        System.out.println("$[error]> Please provide a file name.");
-                    }
-                    break;
-
-                case "exit":
-                    System.out.println("$[See you next time ;D]> Bye!");
-                    isExit = true;
-                    break;
-
-                default:
-                    System.out.println("$[error]> Unknown command: " + command);
-                    break;
+            String output = processCommand(userInput, "");
+            if (!output.isEmpty()) {
+                System.out.println(output);
             }
         }
 
         scanner.close();
     }
 
-    private static String execCommand(String[] commandParts) {
+    private static String processCommand(String userInput, String previousOutput) {
+        // Check for commands that need to use the previous output as input
+        String[] inputParts = userInput.split("\\s+", 2);
+        String command = inputParts[0];
+        String parameters = inputParts.length > 1 ? inputParts[1] : "";
+
+        // If there's a previous output, treat it as input for this command
+        if (!previousOutput.isEmpty() && (command.equals("cat") || command.equals("grep"))) {
+            parameters = previousOutput;
+        }
+
+        switch (command) {
+            case "help":
+                return displayHelp();
+            case "ls":
+                return listFiles();
+            case "cd":
+                changeDirectory(parameters);
+                return "";
+            case "pwd":
+                return "Current working directory: " + currentDirectory;
+            case "mkdir":
+                createDirectory(parameters);
+                return "";
+            case "rmdir":
+                removeDirectory(parameters);
+                return "";
+            case "touch":
+                createFile(parameters);
+                return "";
+            case "mv":
+                String[] mvParams = parameters.split("\\s+");
+                if (mvParams.length == 2) {
+                    moveFile(mvParams[0], mvParams[1]);
+                } else {
+                    return "$[error]> Please provide source and destination.";
+                }
+                return "";
+            case "rm":
+                deleteFile(parameters);
+                return "";
+            case "cat":
+                return displayFileContent(parameters);
+            case "grep":
+                return grepOutput(previousOutput, parameters);
+            case "exit":
+                System.out.println("$[See you next time ;D]> Bye!");
+                System.exit(0);
+                return "";
+            default:
+                return "$[error]> Unknown command: " + command;
+        }
+    }
+
+    private static String displayHelp() {
+        return "Available commands: \n"
+                + " ls [-a | -r]: list current directory child items \n"
+                + " cd <directory>: change directory \n"
+                + " pwd : print working directory \n"
+                + " mkdir <directory>: make directory \n"
+                + " rmdir <directory>: remove empty directory \n"
+                + " touch <file>: create new file \n"
+                + " mv <source> <destination>: cut/rename a file \n"
+                + " rm <file>: remove a file \n"
+                + " cat <file>: output file's content \n"
+                + " grep <pattern>: search for a pattern in the input \n"
+                + " ============================= \n"
+                + " Optional directives: \n"
+                + " > [overwrite] \n"
+                + " >> [append new line] \n"
+                + " | [pipe output]";
+    }
+
+    private static String listFiles() {
+        File directory = new File(currentDirectory);
         StringBuilder output = new StringBuilder();
-
-        try {
-            // ProcessBuilder for running commands
-            ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
-            processBuilder.directory(new File(currentDirectory));
-
-            Process process = processBuilder.start();
-
-            // Read the output
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-
-            // Wait for the process to finish
-            process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            return "$[error]> " + e.getMessage();
+        for (String fileName : directory.list()) {
+            output.append(fileName).append("\n");
         }
-
         return output.toString().trim();
-    }
-
-    private static String execCommand(String[] commandParts, String input) {
-        StringBuilder output = new StringBuilder();
-
-        try {
-            // Create a process to execute the command
-            ProcessBuilder processBuilder = new ProcessBuilder(commandParts);
-            processBuilder.directory(new File(currentDirectory));
-
-            // Start the process
-            Process process = processBuilder.start();
-
-            // Write the input to the process's output stream
-            try (OutputStream os = process.getOutputStream()) {
-                os.write(input.getBytes());
-                os.flush();
-            }
-
-            // Read the output from the process
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-
-            // Wait for the process to finish
-            process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            return "$[error]> " + e.getMessage();
-        }
-
-        return output.toString().trim();
-    }
-
-    private static void writeToFile(String targetFile, String content) {
-        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile))) {
-            fw.write(content);
-        } catch (IOException e) {
-            System.out.println("$[error]> " + e.getMessage());
-        }
-    }
-
-    private static void appendToFile(String targetFile, String content) {
-        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile), true)) {
-            fw.write(content);
-        } catch (IOException e) {
-            System.out.println("$[error]> " + e.getMessage());
-        }
     }
 
     private static void changeDirectory(String path) {
@@ -294,19 +202,48 @@ public class CommandLineInterpreter {
         }
     }
 
-    private static void displayFileContent(String fileName) {
+    private static String displayFileContent(String fileName) {
         File file = new File(currentDirectory, fileName);
+        StringBuilder content = new StringBuilder();
         if (file.exists() && file.isFile()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    content.append(line).append("\n");
                 }
             } catch (IOException e) {
-                System.out.println("$[error]> " + e.getMessage());
+                return "$[error]> " + e.getMessage();
             }
         } else {
-            System.out.println("$[error]> File does not exist: " + fileName);
+            return "$[error]> File does not exist: " + fileName;
+        }
+        return content.toString().trim();
+    }
+
+    private static String grepOutput(String input, String pattern) {
+        StringBuilder output = new StringBuilder();
+        String[] lines = input.split("\n");
+        for (String line : lines) {
+            if (line.contains(pattern)) {
+                output.append(line).append("\n");
+            }
+        }
+        return output.toString().trim();
+    }
+
+    private static void writeToFile(String targetFile, String content) {
+        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile))) {
+            fw.write(content);
+        } catch (IOException e) {
+            System.out.println("$[error]> " + e.getMessage());
+        }
+    }
+
+    private static void appendToFile(String targetFile, String content) {
+        try (FileWriter fw = new FileWriter(new File(currentDirectory, targetFile), true)) {
+            fw.write(content);
+        } catch (IOException e) {
+            System.out.println("$[error]> " + e.getMessage());
         }
     }
 }
