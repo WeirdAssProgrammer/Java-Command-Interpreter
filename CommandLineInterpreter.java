@@ -55,7 +55,7 @@ public class CommandLineInterpreter {
         String parameters = inputParts.length > 1 ? inputParts[1] : "";
 
         // If there's a previous output, treat it as input for this command
-        if (!previousOutput.isEmpty() && (command.equals("cat") || command.equals("grep"))) {
+        if (!previousOutput.isEmpty()) {
             parameters = previousOutput;
         }
 
