@@ -1,35 +1,151 @@
-package tests;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
+import java.io.*;
+import java.nio.file.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import CommandLineInterpreter;
+class CommandLineInterpreterTest {
+    private static final Path tempDir = Paths.get(System.getProperty("user.dir"), "testDir");
+    private static final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    private static final PrintStream originalOut = System.out;
 
-import static org.junit.Assert.assertEquals;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.PrintStream;
+    @BeforeAll
+    static void setUp() throws IOException {
+        // Redirect output stream to capture System.out prints
+        System.setOut(new PrintStream(outputStream));
+        if (!Files.exists(tempDir)) {
+            Files.createDirectory(tempDir);
+        }
+        CommandLineInterpreter.currentDirectory = tempDir.toString();
+    }
 
-public class CommandLineInterpreterTest {
+    @AfterAll
+    static void tearDown() throws IOException {
+        System.setOut(originalOut); // Reset System.out
+        Files.walk(tempDir)
+                .map(Path::toFile)
+                .forEach(File::delete);
+        Files.deleteIfExists(tempDir);
+    }
+
+    @BeforeEach
+    void clearOutput() {
+        outputStream.reset();
+    }
 
     @Test
-    public void testUserInput() {
-        // Set up the input stream to simulate user input
-        String simulatedInput = "Hello, World!\n";
-        InputStream in = new ByteArrayInputStream(simulatedInput.getBytes());
-        System.setIn(in);
+    void testCreateFile() throws IOException {
+        String fileName = "testFile.txt";
+        CommandLineInterpreter.createFile(fileName);
+        Path filePath = tempDir.resolve(fileName);
+        assertTrue(Files.exists(filePath), "File should be created");
+        // Clean up
+        Files.deleteIfExists(filePath);
+    }
 
-        // Set up the output stream to capture output
-        PrintStream originalOut = System.out;
-        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(outContent));
+    @Test
+    void testListFiles() throws IOException {
+        String testFileName = "testListFile.txt";
+        Files.createFile(tempDir.resolve(testFileName));
+        String output = CommandLineInterpreter.listFiles("");
+        assertTrue(output.contains(testFileName), "Directory listing should include the file");
+        Files.deleteIfExists(tempDir.resolve(testFileName));
+    }
 
-        // Call the main method of CommandLineInterpreter
-        CommandLineInterpreter.main(new String[0]);
+    @Test
+    void testChangeDirectory() throws IOException {
+        Path newDir = tempDir.resolve("subDir");
+        Files.createDirectory(newDir);
+        CommandLineInterpreter.changeDirectory("subDir");
+        assertEquals(newDir.toString(), CommandLineInterpreter.getCurrentDirectory(), "Should change to new directory");
+        CommandLineInterpreter.changeDirectory("..");
+        assertEquals(tempDir.toString(), CommandLineInterpreter.getCurrentDirectory(), "Should return to original directory");
+        // Clean up
+        Files.deleteIfExists(newDir);
+    }
 
-        // Assert that the output is as expected
-        assertEquals("You entered: Hello, World!\n", outContent.toString());
+    @Test
+    void testDisplayFileContent() throws IOException {
+        Path testFile = tempDir.resolve("contentFile.txt");
+        Files.writeString(testFile, "Sample Content\nSecond Line");
+        String output = CommandLineInterpreter.displayFileContent("contentFile.txt");
+        assertEquals("Sample Content\nSecond Line", output.trim(), "File content should match expected text");
+        Files.deleteIfExists(testFile);
+    }
 
-        // Reset the System.in and System.out to their original values
-        System.setIn(System.in);
-        System.setOut(originalOut);
+    @Test
+    void testDeleteFile() throws IOException {
+        Path testFile = tempDir.resolve("deleteFile.txt");
+        Files.createFile(testFile);
+        CommandLineInterpreter.deleteFile("deleteFile.txt");
+        assertFalse(Files.exists(testFile), "File should be deleted");
+    }
+
+    @Test
+    void testMoveFile() throws IOException {
+        Path sourceFile = tempDir.resolve("source.txt");
+        Path destinationFile = tempDir.resolve("destination.txt");
+        Files.writeString(sourceFile, "Move this file");
+
+        CommandLineInterpreter.moveFile("source.txt", "destination.txt");
+        assertFalse(Files.exists(sourceFile), "Source file should be moved");
+        assertTrue(Files.exists(destinationFile), "Destination file should exist");
+
+        // Clean up
+        Files.deleteIfExists(destinationFile);
+    }
+
+    @Test
+    void testAppendToFile() throws IOException {
+        Path appendFile = tempDir.resolve("append_test.txt");
+        Files.writeString(appendFile, "First line\n");
+        CommandLineInterpreter.appendToFile("append_test.txt", "Second line\n");
+
+        String content = Files.readString(appendFile);
+        assertTrue(content.contains("First line"), "File should contain initial content");
+        assertTrue(content.contains("Second line"), "File should contain appended content");
+
+        // Clean up
+        Files.deleteIfExists(appendFile);
+    }
+
+    @Test
+    void testWriteToFile() throws IOException {
+        Path writeFile = tempDir.resolve("write_test.txt");
+        CommandLineInterpreter.writeToFile("write_test.txt", "Hello World");
+
+        String content = Files.readString(writeFile);
+        assertEquals("Hello World", content.trim(), "File content should match the written text");
+
+        // Clean up
+        Files.deleteIfExists(writeFile);
+    }
+
+    @Test
+    void testCreateDirectory() throws IOException {
+        String dirName = "newDir";
+        CommandLineInterpreter.createDirectory(dirName);
+        assertTrue(Files.exists(tempDir.resolve(dirName)), "Directory should be created");
+        // Clean up
+        Files.deleteIfExists(tempDir.resolve(dirName));
+    }
+
+    @Test
+    void testRemoveDirectory() throws IOException {
+        String dirName = "removableDir";
+        Files.createDirectory(tempDir.resolve(dirName));
+        CommandLineInterpreter.removeDirectory(dirName);
+        assertFalse(Files.exists(tempDir.resolve(dirName)), "Directory should be removed");
+    }
+
+    @Test
+    void testDisplayHelp() {
+        String helpOutput = CommandLineInterpreter.displayHelp();
+        assertTrue(helpOutput.contains("Available commands:"), "Help should display available commands");
+    }
+
+    @Test
+    void testPwd() {
+        String output = CommandLineInterpreter.getCurrentDirectory();
+        assertEquals(tempDir.toString(), output, "Current directory should match tempDir");
     }
 }
